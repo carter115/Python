@@ -1,46 +1,57 @@
 # -*- coding: utf-8 -*-
-from email import encoders
-from email.header import Header
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email.utils import parseaddr, formataddr
-
 import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
-def _format_addr(s):
-    name, addr = parseaddr(s)
-    return formataddr(( \
-        Header(name, 'utf-8').encode(), \
-        addr.encode('utf-8') if isinstance(addr, unicode) else addr))
+HOST = "smtp.139.com"
+FROM = "13570489773@139.com" # raw_input("From:")
+PASSWORD = raw_input("Password:")
+TO = "422819555@qq.com" # raw_input("To:")
+SUBJECT = u"python邮件测试"
 
-from_addr = raw_input('From: ')
-password = raw_input('Password: ')
-to_addr = raw_input('To: ')
-smtp_server = raw_input('SMTP server: ')
+def addimg(src,imgid):
+    fp = open(src, 'rb')
+    msgImage = MIMEImage(fp.read(),_subtype="jpeg")
+    fp.close()
+    msgImage.add_header('Content-ID', imgid)
+    return msgImage
 
 msg = MIMEMultipart()
-msg['From'] = _format_addr(u'Python爱好者 <%s>' % from_addr)
-msg['To'] = _format_addr(u'管理员 <%s>' % to_addr)
-msg['Subject'] = Header(u'来自SMTP的问候……', 'utf-8').encode()
+msgtext = MIMEText("""
+<table width="600" border="0" cellspacing="0" cellpadding="4">
+      <tr bgcolor="#CECFAD" height="20" style="font-size:14px">
+        <td colspan=2>*官网性能数据  <a href="monitor.domain.com">更多>></a></td>
+      </tr>
+      <tr bgcolor="#EFEBDE" height="100" style="font-size:13px">
+        <td>
+         <img src="cid:io"></td><td>
+         <img src="cid:key_hit"></td>
+      </tr>
+      <tr bgcolor="#EFEBDE" height="100" style="font-size:13px">
+         <td>
+         <img src="cid:men"></td><td>
+         <img src="cid:swap"></td>
+      </tr>
+    </table>""","html","utf-8")
 
-# add MIMEText:
-msg.attach(MIMEText('<html><body><h1>Hello</h1>' +
-    '<p><img src="cid:0"></p>' +
-    '</body></html>', 'html', 'utf-8'))
+msg.attach(msgtext)
+msg.attach(addimg("img/bytes_io.png","io"))
+msg.attach(addimg("img/myisam_key_hit.png","key_hit"))
+msg.attach(addimg("img/os_mem.png","men"))
+msg.attach(addimg("img/os_swap.png","swap"))
 
-# add file:
-with open('img/test.png', 'rb') as f:
-    mime = MIMEBase('image', 'png', filename='test.png')
-    mime.add_header('Content-Disposition', 'attachment', filename='test.png')
-    mime.add_header('Content-ID', '<0>')
-    mime.add_header('X-Attachment-Id', '0')
-    mime.set_payload(f.read())
-    encoders.encode_base64(mime)
-    msg.attach(mime)
+msg['Subject'] = SUBJECT
+msg['From'] = FROM
+msg['To'] = TO
 
-server = smtplib.SMTP(smtp_server, 25)
-server.set_debuglevel(1)
-server.login(from_addr, password)
-server.sendmail(from_addr, [to_addr], msg.as_string())
-server.quit()
+try:
+    server = smtplib.SMTP()
+    server.connect(HOST,"25")
+    server.starttls()
+    server.login(FROM,PASSWORD)
+    server.sendmail(FROM, TO, msg.as_string())
+    server.quit()
+    print "邮件发送成功！"
+except Exception, e:
+    print "失败："+str(e)

@@ -1,31 +1,28 @@
 # -*- coding: utf-8 -*-
-
-
-from email import encoders
-from email.mime.text import MIMEText
-from email.header import Header
-from email.utils import parseaddr,formataddr
-
 import smtplib
 
-from_addr = raw_input('From:')
-password = raw_input('Password:')
-to_addr = raw_input('To:')
-smtp_server = raw_input('SMTP server:')
+def prompt(prompt):
+    return raw_input(prompt).strip()
 
-def _format_addr(s):
-    name,addr = parseaddr(s)
-    return formataddr((Header(name, 'utf-8').encode(), addr))
+fromaddr = prompt("From: ")
+toaddrs  = prompt("To: ").split()
+print "Enter message, end with ^D (Unix) or ^Z (Windows):"
 
-msg = MIMEText('hello ,send by python...',_subtype='plain',_charset='utf-8')
-msg['From'] = _format_addr('Python爱好者 <%s>' % from_addr)
-msg['To'] = _format_addr('管理员 <%s>' % to_addr)
-msg['Subject'] = Header('来自SMTP的问候……', 'utf-8').encode()
+# Add the From: and To: headers at the start!
+msg = ("From: %s\r\nTo: %s\r\n\r\n"
+       % (fromaddr, ", ".join(toaddrs)))
+while 1:
+    try:
+        line = raw_input()
+    except EOFError:
+        break
+    if not line:
+        break
+    msg = msg + line
 
-server = smtplib.SMTP()
-server.connect(smtp_server,25)
-server.login(from_addr,password)
-server.sendmail(from_addr,[to_addr],msg.as_string())
+print "Message length is " + repr(len(msg))
+
+server = smtplib.SMTP('localhost')
+server.set_debuglevel(1)
+server.sendmail(fromaddr, toaddrs, msg)
 server.quit()
-
-
